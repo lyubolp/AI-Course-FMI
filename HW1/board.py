@@ -21,13 +21,33 @@ def add_points(a: Point, b: Point) -> Point:
 def manhattan_distance(p1: Point, p2: Point) -> int:
     return np.abs(p1[0] - p2[0]) + np.abs(p1[1] - p2[1])
 
-
 class Move(Enum):
     UP = (-1, 0)
     DOWN = (1, 0)
     LEFT = (0, -1)
     RIGHT = (0, 1)
 
+
+def pretty_print_move(move: Move) -> str:
+    if move == Move.UP:
+        return "Down"
+    elif move == Move.DOWN:
+        return "Up"
+    elif move == Move.LEFT:
+        return "Right"
+    else:
+        return "Left"
+
+
+def is_move_reverse(first: Move, second: Move):
+    if first == Move.UP:
+        return second == Move.DOWN
+    elif first == Move.DOWN:
+        return second == Move.UP
+    elif first == Move.LEFT:
+        return second == Move.RIGHT
+    else:
+        return second == Move.LEFT
 
 class Board:
     seen_boards = set()
@@ -41,7 +61,7 @@ class Board:
         self.parent_move = None
 
     def copy(self) -> Board:
-        return Board(self.board.copy(), self.zero, self.scores.copy(), self.score)
+        return Board(self.board.copy(), self.zero, self.scores.copy())
 
     @staticmethod
     def user_input_board(n: int):
@@ -68,18 +88,19 @@ class Board:
         new_board.zero = new_zero
 
         new_board.parent_move = move
-        new_board.__evaluate_parent(self)
+        # new_board.__evaluate_parent(self)
 
         return new_board
 
     def get_next_moves(self) -> List[Board]:
         result = []
         for offset in [Move.RIGHT, Move.LEFT, Move.DOWN, Move.UP]:
-            next_position = add_points(self.zero, np.array([offset.value[0], offset.value[1]]))
+            if not is_move_reverse(self.parent_move, offset):
+                next_position = add_points(self.zero, np.array([offset.value[0], offset.value[1]]))
 
-            if is_location_valid(next_position, self.size):
-                new_board = self.__create_new_board(next_position, offset)
-                result.append(new_board)
+                if is_location_valid(next_position, self.size):
+                    new_board = self.__create_new_board(next_position, offset)
+                    result.append(new_board)
 
         return result
 
@@ -99,11 +120,14 @@ class Board:
                     self.scores[i][j] = 0
 
     def __evaluate_parent(self, parent: Board):
-        moved_element = self.board[parent.zero[0]][parent.zero[1]]
+        self.scores = parent.scores.copy()
         self.scores[self.zero[0]][self.zero[1]] = 0
+
+        moved_element = self.board[parent.zero[0]][parent.zero[1]]
         self.scores[parent.zero[0]][parent.zero[1]] = manhattan_distance(parent.zero,
                                                                          self.__convert_index_to_point(moved_element))
 
+        self.score = parent.score
         self.score -= parent.scores[self.zero[0]][self.zero[1]]
         self.score += self.scores[parent.zero[0]][parent.zero[1]]
 
@@ -125,7 +149,6 @@ class Board:
 
     def __count_inversion(self) -> int:
         flat_list = [item for row in self.board for item in row]
-
         inversion_count = 0
 
         for i in range(len(flat_list)):
