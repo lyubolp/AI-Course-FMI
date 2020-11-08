@@ -4,6 +4,7 @@ import cProfile
 from typing import List
 from board import Board
 from node import Node
+
 Point = (int, int)
 Row = List[int]
 
@@ -47,7 +48,6 @@ Row = List[int]
 
 
 def IDA_star(root: Node):
-
     threshold = root.board.score
 
     while True:
@@ -59,26 +59,26 @@ def IDA_star(root: Node):
 
 
 def search(node: Node, g: int, threshold: int):
-        stack = [(node, g, 0)]
-        max_threshold = 0
-        while len(stack) != 0:
-            current_node, current_g, current_level = stack.pop()
+    stack = [(node, g, 0)]
+    max_threshold = 0
+    while len(stack) != 0:
+        current_node, current_g, current_level = stack.pop()
 
-            f = current_g + current_node.board.score
+        f = current_g + current_node.board.score
 
-            if f > threshold:
-                max_threshold = max(max_threshold, f)
-                continue
+        if f > threshold:
+            max_threshold = max(max_threshold, f)
+            continue
 
-            if current_node.board.score == 0:
-                print("Found solution at level {}".format(current_level))
-                return current_node
+        if current_node.board.score == 0:
+            print("Found solution at level {}".format(current_level))
+            return current_node
 
-            current_node.build_next_level()
-            for child_node in current_node.children:
-                stack.append((child_node, current_g + 1, current_level + 1))
+        current_node.build_next_level()
+        for child_node in current_node.children:
+            stack.append((child_node, current_g + 1, current_level + 1))
 
-        return max_threshold
+    return max_threshold
 
 
 if __name__ == '__main__':
@@ -95,8 +95,8 @@ if __name__ == '__main__':
 
     root: Node = Node(board)
 
-    #print(IDA_star(root))
-    #cProfile.run('solution = IDA_star(root)')
+    # print(IDA_star(root))
+    # cProfile.run('solution = IDA_star(root)')
 
     # solution = IDA_star(root)
     cProfile.run('solution = IDA_star(root)')
@@ -104,4 +104,3 @@ if __name__ == '__main__':
     while solution.parent is not None:
         print(solution.board.parent_move)
         solution = solution.parent
-

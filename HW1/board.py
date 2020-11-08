@@ -32,15 +32,16 @@ class Move(Enum):
 class Board:
     seen_boards = set()
 
-    def __init__(self, board: np.array, zero: Point, score: int = -1):
+    def __init__(self, board: np.array, zero: Point, scores: np.array, score: int = -1):
         self.board = board
         self.zero = zero
         self.size = (len(self.board))
+        self.scores = scores
         self.score = score
         self.parent_move = None
 
     def copy(self) -> Board:
-        return Board(self.board.copy(), self.zero, self.score)
+        return Board(self.board.copy(), self.zero, self.scores.copy(), self.score)
 
     @staticmethod
     def user_input_board(n: int):
@@ -56,7 +57,7 @@ class Board:
                 if item == 0:
                     empty_index = np.array([i, j])
 
-        return Board(np.array(new_board_list), empty_index)
+        return Board(np.array(new_board_list), empty_index, np.zeros((row_count, row_count)))
 
     def __create_new_board(self, new_zero: Point, move: Move) -> Board:
         new_board = self.copy()
@@ -86,23 +87,29 @@ class Board:
         index -= 1
         return index // self.size, index % self.size
 
-    def __evaluate_alone(self) -> int:
-        score = 0
+    def __evaluate_alone(self):
+        self.score = 0
         for i in range(self.size):
             for j in range(self.size):
                 if self.board[i][j] != 0:
                     target_position = self.__convert_index_to_point(self.board[i][j])
-                    score += manhattan_distance((i, j), target_position)
-        return score
+                    self.scores[i][j] = manhattan_distance((i, j), target_position)
+                    self.score += self.scores[i][j]
+                else:
+                    self.scores[i][j] = 0
 
     def __evaluate_parent(self, parent: Board):
         moved_element = self.board[parent.zero[0]][parent.zero[1]]
-        self.score -= manhattan_distance(self.zero, parent.__convert_index_to_point(moved_element))
-        self.score += manhattan_distance(parent.zero, self.__convert_index_to_point(moved_element))
+        self.scores[self.zero[0]][self.zero[1]] = 0
+        self.scores[parent.zero[0]][parent.zero[1]] = manhattan_distance(parent.zero,
+                                                                         self.__convert_index_to_point(moved_element))
+
+        self.score -= parent.scores[self.zero[0]][self.zero[1]]
+        self.score += self.scores[parent.zero[0]][parent.zero[1]]
 
     def evaluate(self, parent: Board = None) -> int:
         if parent is None:
-            self.score = self.__evaluate_alone()
+            self.__evaluate_alone()
         else:
             self.__evaluate_parent(parent)
 
