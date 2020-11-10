@@ -5,7 +5,6 @@ from math import sqrt
 from enum import Enum
 import numpy as np
 
-from node import Node
 Point = np.array
 Row = List[int]
 
@@ -19,7 +18,9 @@ def add_points(a: Point, b: Point) -> Point:
 
 
 def manhattan_distance(p1: Point, p2: Point) -> int:
-    return np.abs(p1[0] - p2[0]) + np.abs(p1[1] - p2[1])
+    # return np.abs(p1[0] - p2[0]) + np.abs(p1[1] - p2[1])
+    return np.sum(np.abs(p1 - p2))
+
 
 class Move(Enum):
     UP = (-1, 0)
@@ -49,9 +50,8 @@ def is_move_reverse(first: Move, second: Move):
     else:
         return second == Move.LEFT
 
-class Board:
-    seen_boards = set()
 
+class Board:
     def __init__(self, board: np.array, zero: Point, scores: np.array, score: int = -1):
         self.board = board
         self.zero = zero
@@ -61,7 +61,7 @@ class Board:
         self.parent_move = None
 
     def copy(self) -> Board:
-        return Board(self.board.copy(), self.zero, self.scores.copy())
+        return Board(self.board.copy(), self.zero, self.scores)
 
     @staticmethod
     def user_input_board(n: int):
@@ -88,7 +88,6 @@ class Board:
         new_board.zero = new_zero
 
         new_board.parent_move = move
-        # new_board.__evaluate_parent(self)
 
         return new_board
 
@@ -106,7 +105,7 @@ class Board:
 
     def __convert_index_to_point(self, index: int) -> Point:
         index -= 1
-        return index // self.size, index % self.size
+        return np.array([index // self.size, index % self.size])
 
     def __evaluate_alone(self):
         self.score = 0
@@ -114,7 +113,7 @@ class Board:
             for j in range(self.size):
                 if self.board[i][j] != 0:
                     target_position = self.__convert_index_to_point(self.board[i][j])
-                    self.scores[i][j] = manhattan_distance((i, j), target_position)
+                    self.scores[i][j] = manhattan_distance(np.array([i, j]), target_position)
                     self.score += self.scores[i][j]
                 else:
                     self.scores[i][j] = 0
@@ -132,6 +131,7 @@ class Board:
         self.score += self.scores[parent.zero[0]][parent.zero[1]]
 
     def evaluate(self, parent: Board = None) -> int:
+
         if parent is None:
             self.__evaluate_alone()
         else:

@@ -1,14 +1,7 @@
-from __future__ import annotations
-
 import cProfile
 import sys
-from typing import List
 from board import Board, pretty_print_move
 from node import Node
-
-Point = (int, int)
-Row = List[int]
-
 
 def IDA_star(root: Node):
     threshold = root.board.score
@@ -23,7 +16,7 @@ def IDA_star(root: Node):
 
 def search(node: Node, g: int, threshold: int):
     stack = [(node, g)]
-    max_threshold = sys.maxsize
+    min_threshold = sys.maxsize
     while len(stack) != 0:
         current_node, current_depth = stack.pop()
 
@@ -33,7 +26,7 @@ def search(node: Node, g: int, threshold: int):
         f = current_depth + current_node.board.score
 
         if f > threshold:
-            max_threshold = min(max_threshold, f)
+            min_threshold = min(min_threshold, f)
             continue
 
         if current_node.board.score == 0:
@@ -42,10 +35,11 @@ def search(node: Node, g: int, threshold: int):
 
         if len(current_node.children) == 0:
             current_node.build_next_level()
+
         for child_node in current_node.children:
             stack.append((child_node, current_depth + 1,))
 
-    return max_threshold
+    return min_threshold
 
 
 if __name__ == '__main__':
@@ -60,6 +54,8 @@ if __name__ == '__main__':
     cProfile.run('solution = IDA_star(root)')
 
     reverse_result = []
+
+    # solution.board.print()
     while solution.parent is not None:
         reverse_result.append(pretty_print_move(solution.board.parent_move))
         solution = solution.parent
