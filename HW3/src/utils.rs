@@ -8,7 +8,7 @@ pub mod utils{
 
     pub fn get_random_real_number() -> f32{
         let mut rng = rand::thread_rng();
-        rng.gen_range(0, 100) as f32 / 100f32
+        rng.gen::<f32>()
     }
 
     pub fn tsp_fitness(points: &Vec<Point>) -> f32{
@@ -42,6 +42,10 @@ pub mod utils{
             let x_diff:f32 = other.x as f32 - self.x as f32;
             let y_diff:f32 = other.y as f32 - self.y as f32;
             (x_diff.powi(2) + y_diff.powi(2)).sqrt()
+        }
+
+        pub fn compare(&self, other: &Point) -> bool{
+            self.x == other.x && self.y == other.y
         }
     }
 
