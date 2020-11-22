@@ -1,23 +1,29 @@
 pub mod utils{
     use rand::Rng;
+    use std::collections::HashMap;
 
     pub fn get_random_number_range(from: usize, to: usize) -> usize{
         let mut rng = rand::thread_rng();
         rng.gen_range(from, to) as usize
     }
+    pub fn calculate_dist(cities: &HashMap<i32, Point>) -> Vec<Vec<f32>>{
+        let mut result = vec!();
 
-    pub fn get_random_real_number() -> f32{
-        let mut rng = rand::thread_rng();
-        rng.gen::<f32>()
-    }
-
-    pub fn tsp_fitness(points: &Vec<Point>) -> f32{
-        let mut result: f32 = 0f32;
-        for i in 0..points.len() - 1{
-            result += points[i].get_distance_to(&points[i+1]);
+        for _ in 0..cities.len(){
+            result.push(vec![0f32; cities.len()]);
         }
+
+        for start in 0..cities.len(){
+            for end in 0..cities.len(){
+                if start != end{
+                    result[start][end] = cities.get(&(start as i32)).unwrap().get_distance_to(cities.get(&(end as i32)).unwrap());
+                }
+            }
+        }
+
         result
     }
+
     #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
     pub struct Point{
         x: usize,
@@ -31,21 +37,10 @@ pub mod utils{
                 x, y
             }
         }
-        pub fn new_random(MAX_VALUE: usize) -> Self{
-            let mut rng = rand::thread_rng();
-            Point{
-                x: rng.gen_range(0, MAX_VALUE) as usize,
-                y: rng.gen_range(0, MAX_VALUE) as usize
-            }
-        }
         pub fn get_distance_to(&self, other: &Point) -> f32 {
             let x_diff:f32 = other.x as f32 - self.x as f32;
             let y_diff:f32 = other.y as f32 - self.y as f32;
             (x_diff.powi(2) + y_diff.powi(2)).sqrt()
-        }
-
-        pub fn compare(&self, other: &Point) -> bool{
-            self.x == other.x && self.y == other.y
         }
     }
 

@@ -1,29 +1,11 @@
 use crate::population::population::Population;
 use crate::utils::utils::{Point, get_random_number_range};
-use std::fs;
 use std::collections::HashMap;
+use std::time::Instant;
 
 mod chromosome;
 mod utils;
 mod population;
-
-fn read_input_from_file(filename: &str) -> HashMap<i32, Point>{
-    let contents = fs::read_to_string(filename)
-        .expect("Something went wrong reading the file");
-
-    let mut result: HashMap<i32, Point> = HashMap::new();
-    let mut counter: i32 = 0;
-    for line in contents.split('\n'){
-        let line_vec: Vec<&str> = line.split(' ').collect();
-
-        let first: f32 = line_vec[0].parse().unwrap();
-        let second: f32 = line_vec[1].parse().unwrap();
-        result.insert(counter, Point::new(first as usize, second as usize));
-        counter += 1;
-    }
-
-    result
-}
 
 fn generate_random_cities(size: usize, (min, max): (usize, usize)) -> HashMap<i32, Point>{
     let mut result: HashMap<i32, Point> = HashMap::new();
@@ -37,14 +19,28 @@ fn generate_random_cities(size: usize, (min, max): (usize, usize)) -> HashMap<i3
     result
 }
 fn main() {
-    let MAX_GENERATIONS: i32 = 4000;
-    let POPULATION_SIZE: usize = 400;
-    let cities: HashMap<i32, Point> = read_input_from_file("Berlin52_2.txt");
-    //let cities = generate_random_cities(30, (0, 100));
+    let max_generations: i32 = 1500;
+    let max_epoch: i32 = 20;
+    let population_size: usize = 1600;
+    let elitism: f32 = 0.2f32;
+    let n: usize = 100;
+    let print_points: [i32; 5] = [10, (max_generations / 4), 2 * (max_generations / 4), 3 * (max_generations / 4), max_generations - 1];
+    let cities = generate_random_cities(n, (0, 100));
 
-    let mut temp: Population = Population::new(cities.len(), POPULATION_SIZE, cities);
+    let mut temp: Population;
 
-    for i in 0..MAX_GENERATIONS{
-        println!("Generation {}'s score is {}", i, temp.generation());
+    for epoch in 0..max_epoch{
+        temp = Population::new(cities.len(), population_size, cities.clone(), elitism);
+
+        let now = Instant::now();
+        for generation in 0..max_generations {
+            if print_points.contains(&generation){
+                println!("Epoch {}, generation {}'s score is {}", epoch, generation, temp.generation());
+            }
+            else{
+                temp.generation();
+            }
+        }
+        println!("Epoch took {}s", now.elapsed().as_secs());
     }
 }

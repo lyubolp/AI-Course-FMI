@@ -1,86 +1,89 @@
-pub mod population{
+pub mod population {
     use crate::chromosome::chromosome::Chromosome;
-    use crate::utils::utils::{get_random_number_range, Point};
+    use crate::utils::utils::{get_random_number_range, Point, calculate_dist};
     use std::collections::HashMap;
-    use std::cmp::min;
+    use std::f32::MAX;
 
     pub struct Population {
         chromosomes: Vec<Chromosome>,
-        genes_size: usize,
         population_size: usize,
         elitism_percentage: f32,
-        cities: HashMap<i32, Point>
+        cities_dist: Vec<Vec<f32>>,
     }
+
     impl Population {
-        pub fn new(genes_size: usize, population_size: usize, cities: HashMap<i32, Point>) -> Self{
+        pub fn new(genes_size: usize, population_size: usize, cities: HashMap<i32, Point>, elitism_percentage: f32) -> Self {
             let mut temp: Vec<Chromosome> = vec!();
             let gene_pool: Vec<i32> = cities.keys().map(|&x| x).collect();
-            for _ in 0..population_size{
+            for _ in 0..population_size {
                 temp.push(Chromosome::new_random(genes_size, &gene_pool));
             }
+            let cities_dist = calculate_dist(&cities);
             Population {
                 chromosomes: temp,
-                genes_size,
                 population_size,
-                elitism_percentage: 0.1f32,
-                cities
+                elitism_percentage,
+                cities_dist,
             }
         }
-        pub fn selection(&mut self) -> Vec<Chromosome>{
-            let mut cloned = self.chromosomes.clone();
-            cloned.sort_by(|c1, c2|
-                c1.calculate_fitness(&self.cities).partial_cmp(&c2.calculate_fitness(&self.cities)).unwrap());
+        pub fn selection(&mut self) {
+            let cities_dist = self.cities_dist.clone();
+            self.chromosomes.sort_by(|c1, c2|
+                c1.calculate_fitness(&cities_dist).partial_cmp(&c2.calculate_fitness(&cities_dist)).unwrap()); // O(N*logN*S)
 
             let count: usize = (self.population_size as f32 * self.elitism_percentage) as usize;
-            cloned[0..count].to_vec()
+            self.chromosomes.split_off(count).truncate(count);
         }
 
-        pub fn crossovers(&mut self, parents: &mut Vec<Chromosome>) -> Vec<Chromosome>{
+        pub fn crossovers(&self, parents: &Vec<Chromosome>) -> Vec<Chromosome> {
             let mut next_generation: Vec<Chromosome> = vec!();
 
             let target: usize = self.population_size - parents.len();
 
             while next_generation.len() < target {
-                let (p1, p2): (usize, usize) = self.get_random_parents_indexes(&parents);
+                let (p1, p2): (usize, usize) = self.get_random_parents_indexes(&parents); //O(1*)
 
-                let c1: Chromosome = parents[p1].crossover(&parents[p2]);
-                next_generation.push(c1.clone());
+                next_generation.push(parents[p1].crossover(&parents[p2]));
 
-                if next_generation.len() != target{
-                    let c2: Chromosome = parents[p2].crossover(&parents[p1]);
-                    next_generation.push(c2.clone());
+                if next_generation.len() != target {
+                    next_generation.push(parents[p2].crossover(&parents[p1]));
                 }
             }
             next_generation
         }
 
-        pub fn mutation(&mut self){
+        pub fn mutation(&mut self) {
             let chromosome_index = get_random_number_range(0, self.population_size);
             self.chromosomes[chromosome_index].mutate();
         }
 
-        pub fn generation(&mut self) -> f32{
-            let mut selected_parents: Vec<Chromosome> = self.selection();
-            let children: Vec<Chromosome> = self.crossovers(&mut selected_parents);
+        pub fn generation(&mut self) -> f32 {
+            self.selection();
+            let selected_parents: &Vec<Chromosome> = &self.chromosomes;
 
+            let mut children: Vec<Chromosome> = self.crossovers(selected_parents);
+            for parent in selected_parents {
+                children.push(parent.clone());
+            }
             self.chromosomes = children;
-            self.chromosomes.append(&mut selected_parents);
 
             self.mutation();
 
-            let mut min_score: f32 = self.chromosomes[0].calculate_fitness(&self.cities);
+            let mut min_score: f32 = MAX;
+            for chromosome in &self.chromosomes {
+                let current_score = chromosome.calculate_fitness(&self.cities_dist);
+                if min_score > current_score {
+                    min_score = current_score;
+                }
+            }
             min_score
         }
 
-        pub fn get_chromosomes(&self) -> &Vec<Chromosome> {
-            &self.chromosomes
-        }
-
-        fn get_random_parents_indexes(&self, parents: &Vec<Chromosome>) -> (usize, usize){
+        fn get_random_parents_indexes(&self, parents: &Vec<Chromosome>) -> (usize, usize) { // O(1*)
             let first: usize = get_random_number_range(0, parents.len());
             let second = {
                 let mut temp = get_random_number_range(0, parents.len());
-                while temp == first{
+                while temp == first {
                     temp = get_random_number_range(0, parents.len());
                 }
                 temp
