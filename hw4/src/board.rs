@@ -55,11 +55,11 @@ pub mod board {
                 || self.evaluate_secondary_diagonal(for_value) == 3
         }
 
-        pub fn evaluate(&self, (human_value, bot_value): (usize, usize)) -> i32 {
+        pub fn evaluate(&self, (human_value, bot_value): (usize, usize), current_depth: i32) -> i32 {
             if self.is_board_win_for(human_value){
-                -100
+                -100 + current_depth
             } else if self.is_board_win_for(bot_value){
-                100
+                100 - current_depth
             } else{
                 0
             }

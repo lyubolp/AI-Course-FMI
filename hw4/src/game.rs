@@ -5,6 +5,7 @@ pub mod game {
     use crate::human_player::human_player::HumanPlayer;
     use crate::bot::bot::Bot;
     use std::i32::{MAX, MIN};
+    use std::cmp::{min, max};
 
     pub fn read_from_keyboard() -> Option<Point> {
         let mut line_input = String::new();
@@ -92,7 +93,7 @@ pub mod game {
             &self.board
         }
         pub fn minimax(&self) -> Point {
-            let score = self.maximize(&self.board, 0);
+            let score = self.maximize(&self.board, 0, (MIN, MAX));
             println!("Chosen score is {}, with move {:?}", score.0, score.1);
             score.1
         }
@@ -105,38 +106,51 @@ pub mod game {
             }
         }
 
-        fn minimize(&self, state: &Board, current_depth: i32) -> (i32, Point) {
+        fn minimize(&self, state: &Board, current_depth: i32, (a, mut b): (i32, i32)) -> (i32, Point) {
             let (human_value, bot_value): (usize, usize) = self.get_human_bot_value();
             if state.is_board_full() || state.is_board_win((human_value, bot_value)) {
-                (-(state.evaluate((human_value, bot_value)) - current_depth), state.get_parent_move().unwrap())
+                (state.evaluate((human_value, bot_value), current_depth), state.get_parent_move().unwrap())
             } else {
-                let mut scores: Vec<(i32, Point)> =
-                    state.get_next_states(human_value)
-                        .iter()
-                        .map(|(next_state, next_move)| {
-                            (self.maximize(next_state, current_depth + 1).0, *next_move)
-                        })
-                        .collect();
+                let mut value: i32 = MAX;
+                let mut current_move: Point = Point::new(0, 0);
+                for (next_state, next_move) in state.get_next_states(human_value) {
+                    let current_value = self.maximize(&next_state, current_depth + 1, (a, b)).0;
 
-                scores.sort_by(|&a, &b| a.0.partial_cmp(&b.0).unwrap());
-                scores[0]
+                    if current_value < value{
+                        value = current_value;
+                        current_move = next_move;
+                    }
+
+                    b = min(b, value);
+                    if b <= a {
+                        break;
+                    }
+                }
+                (value, current_move)
             }
         }
 
-        fn maximize(&self, state: &Board, current_depth: i32) -> (i32, Point) {
+        fn maximize(&self, state: &Board, current_depth: i32, (mut a, b): (i32, i32)) -> (i32, Point) {
             let (human_value, bot_value): (usize, usize) = self.get_human_bot_value();
             if state.is_board_full() || state.is_board_win((human_value, bot_value)) {
-                (state.evaluate((human_value, bot_value)) - current_depth, state.get_parent_move().unwrap())
+                (state.evaluate((human_value, bot_value), current_depth), state.get_parent_move().unwrap())
             } else {
-                let mut scores: Vec<(i32, Point)> =
-                    state.get_next_states(bot_value)
-                        .iter()
-                        .map(|(next_state, next_move)| (self.minimize(next_state, current_depth + 1).0, *next_move)
-                        )
-                        .collect();
+                let mut value: i32 = MIN;
+                let mut current_move: Point = Point::new(0, 0);
+                for (next_state, next_move) in state.get_next_states(bot_value) {
+                    let current_value = self.minimize(&next_state, current_depth + 1, (a, b)).0;
 
-                scores.sort_by(|&a, &b| a.0.partial_cmp(&b.0).unwrap());
-                scores[scores.len() - 1]
+                    if current_value > value{
+                        value = current_value;
+                        current_move = next_move;
+                    }
+
+                    a = max(a, value);
+                    if a >= b{
+                        break;
+                    }
+                }
+                (value, current_move)
             }
         }
 
